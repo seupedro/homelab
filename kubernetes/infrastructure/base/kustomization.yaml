@@ -6,4 +6,3 @@ resources:
   - local-path-provisioner
   - traefik
   - cert-manager
-  - cert-manager-issuers
