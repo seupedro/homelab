@@ -42,6 +42,8 @@ spec:
         enabled: true
         matchRule: Host(`traefik.pane.run`)
         entryPoints: ["websecure"]
+        tls:
+          secretName: traefik-dashboard-tls
     
     # Configure ports
     ports:

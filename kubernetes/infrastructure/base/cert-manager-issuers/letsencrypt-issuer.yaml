@@ -7,7 +7,7 @@ spec:
   acme:
     # Staging server for testing
     server: https://acme-staging-v02.api.letsencrypt.org/directory
-    email: admin@pane.run  # CHANGE THIS to your email
+    email: pane.run.x@gmail.com
     privateKeySecretRef:
       name: letsencrypt-staging
     solvers:
@@ -23,7 +23,7 @@ spec:
   acme:
     # Production server
     server: https://acme-v02.api.letsencrypt.org/directory
-    email: admin@pane.run  # CHANGE THIS to your email
+    email: pane.run.x@gmail.com
     privateKeySecretRef:
       name: letsencrypt-prod
     solvers:
