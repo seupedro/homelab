@@ -1,0 +1,76 @@
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: postgresql
+  namespace: storage
+spec:
+  interval: 30m
+  chart:
+    spec:
+      chart: postgresql
+      version: "18.x"
+      sourceRef:
+        kind: HelmRepository
+        name: bitnami
+        namespace: flux-system
+      interval: 12h
+  install:
+    crds: Create
+    remediation:
+      retries: 3
+  upgrade:
+    crds: CreateReplace
+    remediation:
+      retries: 3
+  values:
+    # PostgreSQL version
+    image:
+      tag: "16.6.0-debian-12-r0"
+    
+    # Authentication
+    auth:
+      enablePostgresUser: true
+      postgresPassword: "changeme123"
+      username: "postgres"
+      database: "defaultdb"
+    
+    # Primary configuration
+    primary:
+      # Persistence
+      persistence:
+        enabled: true
+        storageClass: "local-path"
+        size: 8Gi
+      
+      # Resource limits
+      resources:
+        requests:
+          cpu: 250m
+          memory: 256Mi
+        limits:
+          cpu: 1000m
+          memory: 1Gi
+      
+      # PostgreSQL configuration
+      extendedConfiguration: |
+        max_connections = 200
+        shared_buffers = 256MB
+        effective_cache_size = 768MB
+        maintenance_work_mem = 64MB
+        checkpoint_completion_target = 0.9
+        wal_buffers = 16MB
+        default_statistics_target = 100
+        random_page_cost = 1.1
+        effective_io_concurrency = 200
+        work_mem = 1310kB
+        min_wal_size = 1GB
+        max_wal_size = 4GB
+    
+    # Metrics (optional - can be enabled later)
+    metrics:
+      enabled: false
+    
+    # Backup configuration (optional - can be configured later)
+    backup:
+      enabled: false
