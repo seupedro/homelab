@@ -31,6 +31,12 @@ spec:
     deployment:
       kind: DaemonSet
     
+    # Update strategy for DaemonSet
+    updateStrategy:
+      type: RollingUpdate
+      rollingUpdate:
+        maxUnavailable: 1
+    
     # Service configuration
     service:
       type: ClusterIP
