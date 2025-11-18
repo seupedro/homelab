@@ -27,19 +27,14 @@ spec:
     # Use host network to bind directly to ports 80/443
     hostNetwork: true
     
-    # Run Traefik as DaemonSet on all nodes
+    # Run Traefik as Deployment (single-node cluster)
     deployment:
-      kind: DaemonSet
+      kind: Deployment
+      replicas: 1
     
-    # Update strategy for DaemonSet
-    updateStrategy:
-      type: RollingUpdate
-      rollingUpdate:
-        maxUnavailable: 1
-    
-    # Service configuration
+    # Service configuration - use NodePort to expose on host ports
     service:
-      type: ClusterIP
+      type: NodePort
     
     # Enable Traefik dashboard
     ingressRoute:
