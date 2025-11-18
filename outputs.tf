@@ -31,13 +31,6 @@ output "ipv6_address" {
   value       = hcloud_server.main.ipv6_address
 }
 
-# Connection Information
-
-output "ssh_command" {
-  description = "SSH command to connect to the server"
-  value       = "ssh root@${hcloud_server.main.ipv4_address}"
-}
-
 # Status Information
 
 output "server_status" {
@@ -62,6 +55,7 @@ output "dns_wildcard_aaaa_record" {
   value       = "*.pane.run → ${cloudflare_dns_record.wildcard_aaaa.content}"
 }
 
+# Helpful URLs
 output "argocd_url" {
   description = "ArgoCD URL (once ingress is configured)"
   value       = "https://argocd.pane.run"

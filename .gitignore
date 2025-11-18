@@ -38,6 +38,14 @@ secrets.yaml
 *.swo
 *~
 
+# CLI tools
+bin/
+
+# Talos machine configs (generated, contain secrets)
+talos/controlplane.yaml
+talos/worker.yaml
+talos/talosconfig
+
 # IDEs and editors
 .vscode/
 .idea/

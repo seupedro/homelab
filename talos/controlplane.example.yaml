@@ -1,0 +1,18 @@
+# This is only a placeholder to illustrate where to store the Talos machine
+# configuration. Generate a fresh config with:
+#
+#   talosctl gen config <cluster-name> https://<api-endpoint>:6443 \
+#     --with-docs=false --with-examples=false --output-dir talos
+#
+# Then point `talos_machine_config_path` at the resulting controlplane.yaml.
+# DO NOT apply this example file to a real cluster.
+#
+# For complete instructions see talos/README.md.
+cluster:
+  id: PLACEHOLDER
+  clusterName: PLACEHOLDER
+  controlPlane:
+    endpoint: https://REPLACE_ME:6443
+machine:
+  type: controlplane
+  token: PLACEHOLDER

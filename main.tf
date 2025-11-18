@@ -21,28 +21,18 @@ provider "cloudflare" {
   api_token = var.cloudflare_api_token
 }
 
-# SSH Key - Use existing SSH key by fingerprint
-data "hcloud_ssh_key" "main" {
-  fingerprint = "98:e4:83:f9:20:5e:90:98:0a:37:df:d2:47:30:f3:ff"
-}
-
 # Server Configuration
 resource "hcloud_server" "main" {
   name        = var.server_name
   server_type = var.server_type
   location    = var.location
-  image       = var.image
+  image       = var.talos_image_id
 
-  # Cloud-init configuration to install k3s and tools
-  user_data = file("${path.module}/cloud-init.yaml")
-
-  # Attach SSH key for authentication
-  ssh_keys = [data.hcloud_ssh_key.main.id]
+  # Talos machine configuration supplied via user_data
+  # File should come from `talosctl gen config ... --with-docs=false --with-examples=false`.
+  user_data = file(var.talos_machine_config_path)
 
   labels = var.server_labels
-
-  # Enable backups (optional - uncomment to enable)
-  # backups = true
 
   lifecycle {
     ignore_changes = [
@@ -73,4 +63,15 @@ resource "cloudflare_dns_record" "wildcard_aaaa" {
   ttl     = 1 # Auto TTL (Cloudflare proxy)
   proxied = false # Set to false for DNS-only mode (grey cloud)
   comment = "Wildcard AAAA record for homelab server (IPv6) - managed by OpenTofu"
+}
+
+# Talos management subdomain
+resource "cloudflare_dns_record" "talos_a" {
+  zone_id = var.cloudflare_zone_id
+  name    = "talos"
+  content = hcloud_server.main.ipv4_address
+  type    = "A"
+  ttl     = 1 # Auto TTL (Cloudflare proxy)
+  proxied = false # Set to false for DNS-only mode (grey cloud)
+  comment = "Talos management endpoint - managed by OpenTofu"
 }

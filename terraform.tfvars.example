@@ -21,11 +21,6 @@
 # hil  = Hillsboro, Oregon, USA
 # location = "ash"
 
-# Operating System Image (default: ubuntu-24.04)
-# Other options: ubuntu-22.04, ubuntu-20.04, debian-12, debian-11,
-# centos-stream-9, rocky-9, fedora-39, alpine-3.20
-# image = "ubuntu-24.04"
-
 # Labels for organizing your servers
 # Format: key = "value"
 # server_labels = {
@@ -34,30 +29,17 @@
 #   managed-by  = "terraform"
 # }
 
-# SSH Key Configuration (optional)
-# --------------------------------
+# Talos Linux Configuration
+# -------------------------
 
-# Name for your SSH key in Hetzner Cloud
-# ssh_key_name = "my-ssh-key"
+# Talos image or snapshot ID to boot from. Use the public ISO ID below
+# or the ID of your uploaded snapshot created via hcloud-upload-image.
+# talos_image_id = "ce4c980550dd2ab1b17bbf2b08801c7eb59418eafe8f279833297925d67c7515"
 
-# Path to your SSH public key
-# ssh_public_key_path = "~/.ssh/id_rsa.pub"
-
-# k3s Configuration (optional)
-# --------------------------------
-
-# k3s version to install (leave empty for latest)
-# k3s_version = ""
-
-# Additional arguments for k3s installation
-# Examples: "--disable traefik", "--write-kubeconfig-mode 644"
-# k3s_extra_args = ""
-
-# Additional packages to install via cloud-init
-# These are added to the default packages installed: ripgrep, nmap, vim,
-# jq, htop, tree, unzip, wget, curl, git, tmux, net-tools, lsof, ncdu,
-# dnsutils, traceroute, mtr
-# additional_packages = ["docker.io", "python3-pip"]
+# Path to the control plane machine configuration generated with
+# `talosctl gen config <cluster-name> https://<api-endpoint>:6443 \
+#    --with-docs=false --with-examples=false`
+# talos_machine_config_path = "talos/controlplane.yaml"
 
 # Cloudflare DNS Configuration
 # -----------------------------
