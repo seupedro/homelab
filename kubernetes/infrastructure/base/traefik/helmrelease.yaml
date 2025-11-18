@@ -32,9 +32,9 @@ spec:
       kind: Deployment
       replicas: 1
     
-    # Service configuration - use NodePort to expose on host ports
+    # Service configuration - ClusterIP since we're using hostNetwork
     service:
-      type: NodePort
+      type: ClusterIP
     
     # Enable Traefik dashboard
     ingressRoute:
