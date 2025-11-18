@@ -16,15 +16,3 @@ metadata:
 spec:
   interval: 1h
   url: https://charts.jetstack.io
----
-apiVersion: source.toolkit.fluxcd.io/v1
-kind: HelmRepository
-metadata:
-  name: local-path-provisioner
-  namespace: flux-system
-spec:
-  interval: 1h
-  url: https://github.com/rancher/local-path-provisioner
-  type: git
-  ref:
-    tag: v0.0.30
