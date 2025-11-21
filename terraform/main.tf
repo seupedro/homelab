@@ -75,3 +75,15 @@ resource "cloudflare_dns_record" "talos_a" {
   proxied = false # Set to false for DNS-only mode (grey cloud)
   comment = "Talos management endpoint - managed by OpenTofu"
 }
+
+# Container registry subdomain
+resource "cloudflare_dns_record" "registry_a" {
+  zone_id = var.cloudflare_zone_id
+  name    = "registry"
+  content = hcloud_server.main.ipv4_address
+  type    = "A"
+  ttl     = 1 # Auto TTL (Cloudflare proxy)
+  proxied = false # Set to false for DNS-only mode (grey cloud)
+  comment = "Container registry (port 5000) - managed by OpenTofu"
+}
+

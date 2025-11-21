@@ -79,3 +79,20 @@ id_ed25519.pub
 # Helm
 charts/*.tgz
 .helmignore
+
+# Claude Code workspace settings
+.claude/
+**/.claude/
+
+# Backups directory
+backups/
+
+# Deployment summaries (generated)
+DEPLOYMENT_SUMMARY.md
+**/DEPLOYMENT_SUMMARY.md
+
+# Validation reports (generated)
+*_VALIDATION_REPORT.md
+
+# Old backup files
+*.old

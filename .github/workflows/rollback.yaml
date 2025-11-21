@@ -1,0 +1,142 @@
+name: Rollback Application
+
+on:
+  workflow_dispatch:
+    inputs:
+      app_name:
+        description: 'Application name to rollback'
+        required: true
+        type: string
+      revision:
+        description: 'Revision number to rollback to (leave empty for previous revision)'
+        required: false
+        type: string
+
+jobs:
+  rollback:
+    name: Rollback Deployment
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v4
+
+      - name: Configure kubeconfig
+        run: |
+          mkdir -p ~/.kube
+          echo "${{ secrets.KUBECONFIG_CONTENT }}" | base64 -d > ~/.kube/config
+          chmod 600 ~/.kube/config
+
+          # Verify connection
+          kubectl cluster-info
+          kubectl get nodes
+
+      - name: Check deployment exists
+        id: check
+        run: |
+          if ! kubectl get deployment "${{ github.event.inputs.app_name }}" -n "${{ github.event.inputs.app_name }}" &>/dev/null; then
+            echo "Error: Deployment ${{ github.event.inputs.app_name }} not found in namespace ${{ github.event.inputs.app_name }}"
+            exit 1
+          fi
+
+          echo "Deployment found. Getting rollout history..."
+          kubectl rollout history deployment/"${{ github.event.inputs.app_name }}" -n "${{ github.event.inputs.app_name }}"
+
+      - name: Perform rollback
+        id: rollback
+        run: |
+          APP_NAME="${{ github.event.inputs.app_name }}"
+          REVISION="${{ github.event.inputs.revision }}"
+
+          echo "Starting rollback for $APP_NAME..."
+
+          if [[ -n "$REVISION" ]]; then
+            echo "Rolling back to revision $REVISION"
+            kubectl rollout undo deployment/"$APP_NAME" -n "$APP_NAME" --to-revision="$REVISION"
+          else
+            echo "Rolling back to previous revision"
+            kubectl rollout undo deployment/"$APP_NAME" -n "$APP_NAME"
+          fi
+
+          echo "Waiting for rollback to complete..."
+          kubectl rollout status deployment/"$APP_NAME" -n "$APP_NAME" --timeout=5m
+
+          echo "Rollback completed successfully!"
+
+      - name: Verify rollback
+        run: |
+          APP_NAME="${{ github.event.inputs.app_name }}"
+
+          echo "Current deployment status:"
+          kubectl get deployment "$APP_NAME" -n "$APP_NAME"
+
+          echo ""
+          echo "Pods status:"
+          kubectl get pods -n "$APP_NAME" -l app="$APP_NAME"
+
+          echo ""
+          echo "Latest events:"
+          kubectl get events -n "$APP_NAME" --sort-by='.lastTimestamp' | tail -n 10
+
+      - name: Get application URL
+        id: get-url
+        run: |
+          APP_NAME="${{ github.event.inputs.app_name }}"
+
+          # Try to get subdomain from IngressRoute
+          SUBDOMAIN=$(kubectl get ingressroute "$APP_NAME" -n "$APP_NAME" -o jsonpath='{.spec.routes[0].match}' 2>/dev/null | sed -E 's/.*Host\(`([^.]+)\.pane\.run`\).*/\1/' || echo "$APP_NAME")
+
+          echo "subdomain=$SUBDOMAIN" >> $GITHUB_OUTPUT
+
+      - name: Run health check
+        run: |
+          SUBDOMAIN="${{ steps.get-url.outputs.subdomain }}"
+          URL="https://$SUBDOMAIN.pane.run"
+
+          echo "Running health check for $URL..."
+
+          ./scripts/health-check.sh --url "$URL" --retries 10 --interval 10
+
+      - name: Rollback summary
+        if: success()
+        run: |
+          echo "## ✅ Rollback Successful!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Application**: ${{ github.event.inputs.app_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "**URL**: https://${{ steps.get-url.outputs.subdomain }}.pane.run" >> $GITHUB_STEP_SUMMARY
+
+          if [[ -n "${{ github.event.inputs.revision }}" ]]; then
+            echo "**Rolled back to**: Revision ${{ github.event.inputs.revision }}" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "**Rolled back to**: Previous revision" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Deployment Status" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          kubectl get deployment ${{ github.event.inputs.app_name }} -n ${{ github.event.inputs.app_name }} >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+      - name: Rollback failed
+        if: failure()
+        run: |
+          echo "## ❌ Rollback Failed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Application**: ${{ github.event.inputs.app_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Check the logs above for error details." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Manual Rollback Commands" >> $GITHUB_STEP_SUMMARY
+          echo '```bash' >> $GITHUB_STEP_SUMMARY
+          echo "# View rollout history" >> $GITHUB_STEP_SUMMARY
+          echo "kubectl rollout history deployment/${{ github.event.inputs.app_name }} -n ${{ github.event.inputs.app_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "# Rollback to previous revision" >> $GITHUB_STEP_SUMMARY
+          echo "kubectl rollout undo deployment/${{ github.event.inputs.app_name }} -n ${{ github.event.inputs.app_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "# Rollback to specific revision" >> $GITHUB_STEP_SUMMARY
+          echo "kubectl rollout undo deployment/${{ github.event.inputs.app_name }} -n ${{ github.event.inputs.app_name }} --to-revision=<REVISION>" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY

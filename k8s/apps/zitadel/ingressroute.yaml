@@ -1,0 +1,25 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: zitadel
+  namespace: zitadel
+  labels:
+    app: zitadel
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - kind: Rule
+      match: Host(`zitadel.pane.run`) && PathPrefix(`/ui/v2`)
+      services:
+        - name: zitadel-login
+          port: 3000
+      priority: 20
+    - kind: Rule
+      match: Host(`zitadel.pane.run`)
+      services:
+        - name: zitadel
+          port: 8080
+      priority: 10
+  tls:
+    secretName: zitadel-tls

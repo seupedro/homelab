@@ -1,0 +1,22 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: searxng
+  namespace: searxng
+  labels:
+    app: searxng
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - kind: Rule
+      match: Host(`searxng.pane.run`)
+      # No middlewares - OAuth2-Proxy handles authentication internally
+      services:
+        # Route to OAuth2-Proxy instead of SearXNG directly
+        # OAuth2-Proxy will handle authentication and proxy to SearXNG backend
+        - name: oauth2-proxy-searxng
+          namespace: searxng
+          port: 80
+  tls:
+    secretName: searxng-pane-run-tls

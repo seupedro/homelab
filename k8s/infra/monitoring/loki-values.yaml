@@ -1,0 +1,198 @@
+# Helm values for Loki
+# Chart: grafana/loki
+
+# Deployment mode: SingleBinary (suitable for single-node cluster)
+deploymentMode: SingleBinary
+
+# Loki configuration
+loki:
+  # Auth configuration (disabled for internal use)
+  auth_enabled: false
+
+  # Common configuration
+  commonConfig:
+    replication_factor: 1
+
+  # Storage configuration
+  storage:
+    type: filesystem
+
+  # Schema configuration
+  schemaConfig:
+    configs:
+      - from: "2024-01-01"
+        store: tsdb
+        object_store: filesystem
+        schema: v13
+        index:
+          prefix: index_
+          period: 24h
+
+  # Limits configuration
+  limits_config:
+    retention_period: 30d
+    max_query_series: 10000
+    max_query_lookback: 30d
+    ingestion_rate_mb: 10
+    ingestion_burst_size_mb: 20
+
+  # Storage retention
+  storage_config:
+    tsdb_shipper:
+      active_index_directory: /var/loki/tsdb-index
+      cache_location: /var/loki/tsdb-cache
+
+  # Compactor configuration (for log retention)
+  compactor:
+    working_directory: /var/loki/compactor
+    compaction_interval: 10m
+    retention_enabled: true
+    retention_delete_delay: 2h
+    retention_delete_worker_count: 150
+    delete_request_store: filesystem
+
+  # Resource limits for Loki
+  resources:
+    requests:
+      cpu: 200m
+      memory: 256Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+
+# SingleBinary mode configuration
+singleBinary:
+  replicas: 1
+
+  # Persistence for logs
+  persistence:
+    enabled: true
+    storageClassName: local-path
+    size: 50Gi
+
+  # Extra environment variables
+  extraEnv:
+    - name: GOMEMLIMIT
+      value: "900MiB"
+
+# Disable distributed components (not needed in SingleBinary mode)
+read:
+  replicas: 0
+
+write:
+  replicas: 0
+
+backend:
+  replicas: 0
+
+# Gateway configuration (disabled for single-node)
+gateway:
+  enabled: false
+
+# Monitoring configuration
+monitoring:
+  serviceMonitor:
+    enabled: true
+    labels:
+      release: kube-prometheus-stack
+
+  selfMonitoring:
+    enabled: false
+    grafanaAgent:
+      installOperator: false
+
+  lokiCanary:
+    enabled: false
+
+# Promtail configuration (log collector)
+promtail:
+  enabled: true
+
+  config:
+    # Promtail server configuration
+    server:
+      http_listen_port: 3101
+      grpc_listen_port: 0
+
+    # Position file
+    positions:
+      filename: /tmp/positions.yaml
+
+    # Loki client configuration
+    clients:
+      - url: http://loki:3100/loki/api/v1/push
+        tenant_id: 1
+
+    # Scrape configuration
+    scrape_configs:
+      # Kubernetes pod logs
+      - job_name: kubernetes-pods
+        kubernetes_sd_configs:
+          - role: pod
+        relabel_configs:
+          # Only scrape running pods
+          - source_labels: [__meta_kubernetes_pod_phase]
+            action: keep
+            regex: Running
+
+          # Drop pods in kube-system namespace (optional, can be removed)
+          # - source_labels: [__meta_kubernetes_namespace]
+          #   action: drop
+          #   regex: kube-system
+
+          # Set namespace label
+          - source_labels: [__meta_kubernetes_namespace]
+            target_label: namespace
+
+          # Set pod name label
+          - source_labels: [__meta_kubernetes_pod_name]
+            target_label: pod
+
+          # Set container name label
+          - source_labels: [__meta_kubernetes_pod_container_name]
+            target_label: container
+
+          # Set node name label
+          - source_labels: [__meta_kubernetes_pod_node_name]
+            target_label: node
+
+          # Read labels from pod annotations
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            target_label: app
+
+          - source_labels: [__meta_kubernetes_pod_label_app_kubernetes_io_name]
+            target_label: app_name
+
+          # Set filename label
+          - replacement: /var/log/pods/*$1/*.log
+            separator: /
+            source_labels:
+              - __meta_kubernetes_pod_uid
+              - __meta_kubernetes_pod_container_name
+            target_label: __path__
+
+  # Resource limits for Promtail
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+
+  # Service monitor for Promtail
+  serviceMonitor:
+    enabled: true
+    labels:
+      release: kube-prometheus-stack
+
+# Test configuration
+test:
+  enabled: false
+
+# Memcached configuration (disabled for SingleBinary mode)
+chunksCache:
+  enabled: false
+
+resultsCache:
+  enabled: false

@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: writefreely
+  namespace: writefreely
+  labels:
+    app: writefreely
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: writefreely
+  template:
+    metadata:
+      labels:
+        app: writefreely
+    spec:
+      containers:
+      - name: writefreely
+        image: writeas/writefreely:latest
+        ports:
+        - containerPort: 8080
+          name: http
+          protocol: TCP
+        volumeMounts:
+        - name: config
+          mountPath: /config
+          readOnly: true
+        - name: keys
+          mountPath: /writefreely/keys
+        - name: data
+          mountPath: /data
+        command: ["/bin/sh", "-c"]
+        args: ["cp /config/config.ini . && /go/cmd/writefreely/writefreely"]
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+      volumes:
+      - name: config
+        configMap:
+          name: writefreely-config
+      - name: keys
+        persistentVolumeClaim:
+          claimName: writefreely-keys
+      - name: data
+        persistentVolumeClaim:
+          claimName: writefreely-data

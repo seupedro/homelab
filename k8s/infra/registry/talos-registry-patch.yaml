@@ -1,0 +1,9 @@
+machine:
+  registries:
+    mirrors:
+      10.105.124.157:5000:
+        endpoints:
+          - http://10.105.124.157:5000
+      94.130.181.89:30500:
+        endpoints:
+          - http://94.130.181.89:30500

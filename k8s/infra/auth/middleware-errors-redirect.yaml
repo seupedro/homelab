@@ -1,0 +1,15 @@
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: oauth2-errors
+  namespace: auth
+  labels:
+    app: oauth2-proxy
+spec:
+  errors:
+    status:
+      - "401-403"
+    service:
+      name: oauth2-proxy
+      port: 80
+    query: "/oauth2/start?rd=https://whoami.pane.run{path}"

@@ -1,0 +1,101 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: searxng
+  namespace: searxng
+  labels:
+    app: searxng
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: searxng
+  template:
+    metadata:
+      labels:
+        app: searxng
+    spec:
+      securityContext:
+        fsGroup: 977
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: searxng
+        image: searxng/searxng:2025.9.29-77fd3ee53
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8080
+          name: http
+          protocol: TCP
+        env:
+        - name: SEARXNG_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: searxng-secret
+              key: secret_key
+        - name: INSTANCE_NAME
+          value: "SearXNG"
+        - name: BASE_URL
+          value: "https://searxng.pane.run"
+        - name: AUTOCOMPLETE
+          value: ""
+        volumeMounts:
+        - name: config
+          mountPath: /etc/searxng
+          readOnly: true
+        - name: tmp
+          mountPath: /tmp
+        - name: var-tmp
+          mountPath: /var/tmp
+        - name: cache
+          mountPath: /var/cache
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+          limits:
+            cpu: 1000m
+            memory: 512Mi
+        securityContext:
+          runAsNonRoot: false
+          privileged: false
+          readOnlyRootFilesystem: true
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+            add:
+            - SETGID
+            - SETUID
+        startupProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+          failureThreshold: 30
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+          initialDelaySeconds: 15
+          periodSeconds: 20
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 3
+      volumes:
+      - name: config
+        configMap:
+          name: searxng-config
+      - name: tmp
+        emptyDir: {}
+      - name: var-tmp
+        emptyDir: {}
+      - name: cache
+        emptyDir: {}

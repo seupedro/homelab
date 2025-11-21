@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: zitadel
+  labels:
+    name: zitadel
+    app: zitadel

@@ -1,0 +1,225 @@
+# Helm values for kube-prometheus-stack
+# Chart: prometheus-community/kube-prometheus-stack
+
+# Global settings
+fullnameOverride: ""
+
+# Prometheus configuration
+prometheus:
+  prometheusSpec:
+    # Use Prometheus 2.x to avoid permission issues with 3.x query tracker
+    image:
+      registry: quay.io
+      repository: prometheus/prometheus
+      tag: v2.55.1
+
+    # Retention period for metrics
+    retention: 15d
+
+    # Resource limits
+    resources:
+      requests:
+        cpu: 500m
+        memory: 1Gi
+      limits:
+        cpu: 2000m
+        memory: 2Gi
+
+    # Storage configuration
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: local-path
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 50Gi
+
+    # Service monitor selector (select all)
+    serviceMonitorSelectorNilUsesHelmValues: false
+    podMonitorSelectorNilUsesHelmValues: false
+    ruleSelectorNilUsesHelmValues: false
+
+    # Enable admin API for management
+    enableAdminAPI: true
+
+    # Security context for Talos Linux compatibility
+    # IMPORTANT: Running as root (runAsUser: 0) is required to fix permission issues
+    # with the Prometheus query tracker on Talos Linux + local-path-provisioner
+    # The query tracker needs to write to /prometheus/queries.active which fails
+    # even with readOnlyRootFilesystem: false when running as non-root
+    # This is a known issue with Talos + Prometheus Operator + local-path storage
+    securityContext:
+      runAsUser: 0
+      runAsNonRoot: false
+      fsGroup: 0
+
+
+# Alertmanager configuration (disabled initially)
+alertmanager:
+  enabled: false
+
+# Grafana configuration
+grafana:
+  enabled: true
+
+  # Admin credentials
+  adminPassword: "changeme-please-update-this"
+
+  # Disable default ingress (we use Traefik IngressRoute)
+  ingress:
+    enabled: false
+
+  # Persistence for dashboards and plugins
+  persistence:
+    enabled: true
+    storageClassName: local-path
+    size: 10Gi
+
+  # Resource limits
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+  # Datasource configuration - use chart defaults
+  # Loki datasource will be added after Loki is deployed via ConfigMap
+
+  # Dashboard providers
+  dashboardProviders:
+    dashboardproviders.yaml:
+      apiVersion: 1
+      providers:
+      - name: 'default'
+        orgId: 1
+        folder: ''
+        type: file
+        disableDeletion: false
+        editable: true
+        options:
+          path: /var/lib/grafana/dashboards/default
+
+  # Pre-configured dashboards
+  dashboards:
+    default:
+      # Kubernetes cluster monitoring
+      kubernetes-cluster:
+        gnetId: 7249
+        revision: 1
+        datasource: Prometheus
+
+      # Kubernetes pods monitoring
+      kubernetes-pods:
+        gnetId: 6417
+        revision: 1
+        datasource: Prometheus
+
+      # Node exporter dashboard
+      node-exporter:
+        gnetId: 1860
+        revision: 37
+        datasource: Prometheus
+
+      # Loki logs dashboard
+      loki-logs:
+        gnetId: 13639
+        revision: 2
+        datasource: Loki
+
+# Node exporter configuration
+nodeExporter:
+  enabled: true
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+
+# Kube-state-metrics configuration
+kube-state-metrics:
+  enabled: true
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+
+# Prometheus operator configuration
+prometheusOperator:
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+
+  # Create default service monitors
+  serviceMonitor:
+    selfMonitor: true
+
+# Configure default service monitors
+defaultRules:
+  create: true
+  rules:
+    alertmanager: false
+    etcd: true
+    configReloaders: true
+    general: true
+    k8s: true
+    kubeApiserver: true
+    kubeApiserverAvailability: true
+    kubeApiserverSlos: true
+    kubelet: true
+    kubeProxy: true
+    kubePrometheusGeneral: true
+    kubePrometheusNodeRecording: true
+    kubernetesApps: true
+    kubernetesResources: true
+    kubernetesStorage: true
+    kubernetesSystem: true
+    kubeScheduler: true
+    kubeStateMetrics: true
+    network: true
+    node: true
+    nodeExporterAlerting: true
+    nodeExporterRecording: true
+    prometheus: true
+    prometheusOperator: true
+
+# Kubelet monitoring
+kubelet:
+  enabled: true
+  serviceMonitor:
+    metricRelabelings:
+      # Drop high cardinality metrics
+      - sourceLabels: [__name__]
+        regex: 'container_cpu_.*'
+        action: keep
+
+# CoreDNS monitoring
+coreDns:
+  enabled: true
+
+# Kube Controller Manager monitoring (disabled for managed clusters)
+kubeControllerManager:
+  enabled: false
+
+# Kube Scheduler monitoring (disabled for managed clusters)
+kubeScheduler:
+  enabled: false
+
+# Kube Proxy monitoring
+kubeProxy:
+  enabled: true
+
+# Kube Etcd monitoring (disabled for managed clusters)
+kubeEtcd:
+  enabled: false

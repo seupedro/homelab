@@ -1,0 +1,68 @@
+# Traefik Helm Values - externalIPs Configuration
+# This replaces hostNetwork with Service-based approach using externalIPs
+
+# Additional arguments (keep existing)
+additionalArguments:
+- --accesslog=true
+- --log.level=INFO
+- --providers.kubernetescrd.allowCrossNamespace=true
+
+# Deployment configuration
+deployment:
+  kind: Deployment
+  replicas: 1
+  # hostNetwork: false  # REMOVED - default is false when not specified
+
+# Image configuration (keep existing version)
+image:
+  tag: v3.6.2
+
+# IngressRoute for dashboard (keep existing)
+ingressRoute:
+  dashboard:
+    enabled: true
+    entryPoints:
+    - websecure
+    matchRule: Host(`traefik.pane.run`)
+    tls:
+      secretName: traefik-dashboard-tls
+
+# Ports configuration (keep existing)
+ports:
+  web:
+    exposedPort: 80
+    port: 80
+  websecure:
+    exposedPort: 443
+    port: 443
+    tls:
+      enabled: true
+
+# Resources (keep existing)
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+# Security context - updated for non-root (no longer need NET_BIND_SERVICE)
+securityContext:
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: true
+  runAsGroup: 65532
+  runAsNonRoot: true
+  runAsUser: 65532
+
+# Service configuration - ADD externalIPs
+service:
+  enabled: true
+  type: ClusterIP
+  # ADD: Use server's public IP via externalIPs
+  externalIPs:
+    - "94.130.181.89"
+  # ADD: Preserve client IPs
+  externalTrafficPolicy: Local

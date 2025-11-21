@@ -1,0 +1,16 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: writefreely
+  namespace: writefreely
+spec:
+  entryPoints:
+    - websecure
+  routes:
+  - match: Host(`write.pane.run`)
+    kind: Rule
+    services:
+    - name: writefreely
+      port: 8080
+  tls:
+    secretName: write-pane-run-tls

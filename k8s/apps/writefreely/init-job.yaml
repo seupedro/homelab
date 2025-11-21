@@ -1,0 +1,33 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: writefreely-init-db
+  namespace: writefreely
+spec:
+  ttlSecondsAfterFinished: 300
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+      - name: init-db
+        image: writeas/writefreely:latest
+        command: ["/bin/sh", "-c"]
+        args: ["cp /config/config.ini . && /go/cmd/writefreely/writefreely --init-db"]
+        volumeMounts:
+        - name: config
+          mountPath: /config
+          readOnly: true
+        - name: keys
+          mountPath: /writefreely/keys
+        - name: data
+          mountPath: /data
+      volumes:
+      - name: config
+        configMap:
+          name: writefreely-config
+      - name: keys
+        persistentVolumeClaim:
+          claimName: writefreely-keys
+      - name: data
+        persistentVolumeClaim:
+          claimName: writefreely-data

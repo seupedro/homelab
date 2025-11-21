@@ -1,0 +1,18 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: oauth2-proxy
+  namespace: auth
+  labels:
+    app: oauth2-proxy
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - kind: Rule
+      match: Host(`auth.pane.run`)
+      services:
+        - name: oauth2-proxy
+          port: 80
+  tls:
+    secretName: auth-tls

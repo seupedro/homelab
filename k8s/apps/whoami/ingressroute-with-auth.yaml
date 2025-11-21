@@ -1,0 +1,21 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+    name: whoami
+    namespace: whoami
+    labels:
+        app: whoami
+spec:
+    entryPoints:
+        - websecure
+    routes:
+        - kind: Rule
+          match: Host(`whoami.pane.run`)
+          middlewares:
+            - name: oauth2-forward-auth
+              namespace: auth
+          services:
+              - name: whoami
+                port: 80
+    tls:
+        secretName: whoami-tls

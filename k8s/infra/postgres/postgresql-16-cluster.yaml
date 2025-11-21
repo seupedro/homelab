@@ -1,0 +1,39 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: postgresql-16
+  namespace: postgres
+spec:
+  instances: 1
+  imageName: ghcr.io/cloudnative-pg/postgresql:16
+  enableSuperuserAccess: true
+
+  storage:
+    size: 50Gi
+    storageClass: local-path
+
+  postgresql:
+    parameters:
+      max_connections: "200"
+      shared_buffers: "256MB"
+      effective_cache_size: "1GB"
+      work_mem: "4MB"
+      maintenance_work_mem: "64MB"
+
+  bootstrap:
+    initdb:
+      database: app
+      owner: app
+      secret:
+        name: postgresql-16-credentials
+
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "500m"
+    limits:
+      memory: "2Gi"
+      cpu: "2000m"
+
+  monitoring:
+    enablePodMonitor: false

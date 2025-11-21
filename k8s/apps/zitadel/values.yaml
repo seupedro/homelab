@@ -1,0 +1,87 @@
+# Zitadel Helm Chart Values
+# Documentation: https://github.com/zitadel/zitadel-charts
+
+# Image configuration
+image:
+  repository: ghcr.io/zitadel/zitadel
+  tag: v4.7.0
+
+zitadel:
+  # Masterkey for encryption (stored in secret)
+  masterkeySecretName: "zitadel-masterkey"
+
+  # ConfigMap configuration (non-sensitive values)
+  configmapConfig:
+    ExternalSecure: true
+    ExternalDomain: zitadel.pane.run
+    ExternalPort: 443
+    TLS:
+      Enabled: false  # TLS termination handled by Traefik
+
+    # Database configuration (non-sensitive)
+    Database:
+      Postgres:
+        Host: postgresql-16-rw.postgres.svc.cluster.local
+        Port: 5432
+        Database: zitadel
+        MaxOpenConns: 20
+        MaxIdleConns: 10
+        MaxConnLifetime: 30m
+        MaxConnIdleTime: 5m
+        User:
+          SSL:
+            Mode: disable
+        Admin:
+          SSL:
+            Mode: disable
+
+  # Secret configuration (sensitive values)
+  secretConfig:
+    # Initial admin user credentials
+    FirstInstance:
+      Org:
+        Human:
+          UserName: "admin"
+          Password: "5mJd7BrH&HYAiBd9D3pD1QZ^"
+
+    # Database credentials
+    Database:
+      Postgres:
+        User:
+          Username: zitadel_user
+          Password: "04EEvVRHy6tDZqKDTNi8w4oGRmANuZAo"
+        Admin:
+          Username: zitadel_admin
+          Password: "lAa0cnb0PkUz7TcIKL0x62uAoZEDQxTb"
+
+# Resource limits
+resources:
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+  requests:
+    cpu: 500m
+    memory: 512Mi
+
+# Replica count
+replicaCount: 1
+
+# Service configuration
+service:
+  type: ClusterIP
+  port: 8080
+
+# Disable built-in ingress (we'll use Traefik IngressRoute)
+ingress:
+  enabled: false
+
+# Readiness and liveness probes
+readinessProbe:
+  enabled: true
+  initialDelaySeconds: 30
+  periodSeconds: 10
+
+livenessProbe:
+  enabled: true
+  initialDelaySeconds: 30
+  periodSeconds: 10

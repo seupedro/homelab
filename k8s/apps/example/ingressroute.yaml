@@ -1,0 +1,16 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: example
+  namespace: example
+spec:
+  entryPoints:
+  - websecure
+  routes:
+  - match: Host(`example.pane.run`)
+    kind: Rule
+    services:
+    - name: example
+      port: 80
+  tls:
+    secretName: example-tls

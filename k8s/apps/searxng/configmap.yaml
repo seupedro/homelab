@@ -1,0 +1,43 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: searxng-config
+  namespace: searxng
+data:
+  settings.yml: |
+    # SearXNG Configuration
+    # Documentation: https://docs.searxng.org/admin/settings/
+
+    use_default_settings: true
+
+    general:
+      instance_name: "SearXNG"
+      contact_url: false
+      enable_metrics: true
+
+    server:
+      secret_key: "__SEARXNG_SECRET_KEY__"  # Will be replaced by environment variable
+      limiter: false  # Rate limiting disabled (no Redis)
+      image_proxy: true  # Enable image proxying for privacy
+      base_url: "https://searxng.pane.run"
+      port: 8080
+      bind_address: "0.0.0.0"
+
+    ui:
+      static_use_hash: true
+      default_theme: simple
+      theme_args:
+        simple_style: auto
+
+    search:
+      safe_search: 0  # 0=off, 1=moderate, 2=strict
+      autocomplete: ""
+      default_lang: "en"
+
+    # Enable outgoing request settings
+    outgoing:
+      request_timeout: 3.0
+      max_request_timeout: 10.0
+      pool_connections: 100
+      pool_maxsize: 20
+      enable_http2: true

@@ -1,0 +1,31 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: registry-https
+  namespace: registry
+spec:
+  entryPoints:
+    - websecure
+  routes:
+  - match: Host(`registry.pane.run`)
+    kind: Rule
+    services:
+    - name: registry
+      port: 5000
+  tls:
+    certResolver: default
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: registry-http
+  namespace: registry
+spec:
+  entryPoints:
+    - web
+  routes:
+  - match: Host(`registry.pane.run`)
+    kind: Rule
+    services:
+    - name: registry
+      port: 5000
