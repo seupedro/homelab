@@ -1,0 +1,118 @@
+# Helm values for Promtail (log collector for Loki)
+# Chart: grafana/promtail
+# Deployed as separate chart (not part of Loki chart in v6.x+)
+
+# Promtail configuration
+config:
+  # Loki client configuration
+  clients:
+    - url: http://loki.monitoring.svc.cluster.local:3100/loki/api/v1/push
+      tenant_id: 1
+
+  # Scrape configuration for Kubernetes pod logs
+  snippets:
+    # Pipeline stages for parsing logs
+    pipelineStages:
+      - cri: {}  # Parse CRI log format
+      - multiline:
+          firstline: '^\d{4}-\d{2}-\d{2}'  # Detect multi-line logs
+          max_wait_time: 3s
+
+    # Common scrape config
+    scrapeConfigs: |
+      # Scrape Kubernetes pod logs
+      - job_name: kubernetes-pods
+        kubernetes_sd_configs:
+          - role: pod
+
+        # Pipeline stages
+        pipeline_stages:
+          {{- toYaml .Values.config.snippets.pipelineStages | nindent 4 }}
+
+        # Relabel configs to add metadata
+        relabel_configs:
+          # Only scrape running pods
+          - source_labels: [__meta_kubernetes_pod_phase]
+            action: keep
+            regex: Running
+
+          # Drop init containers
+          - source_labels: [__meta_kubernetes_pod_container_init]
+            action: drop
+            regex: true
+
+          # Drop pods without logs
+          - source_labels: [__meta_kubernetes_pod_container_name]
+            action: drop
+            regex: ^$
+
+          # Add namespace label
+          - source_labels: [__meta_kubernetes_namespace]
+            target_label: namespace
+
+          # Add pod name label
+          - source_labels: [__meta_kubernetes_pod_name]
+            target_label: pod
+
+          # Add container name label
+          - source_labels: [__meta_kubernetes_pod_container_name]
+            target_label: container
+
+          # Add node name label
+          - source_labels: [__meta_kubernetes_pod_node_name]
+            target_label: node
+
+          # Add app label from pod label
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            target_label: app
+
+          # Add app.kubernetes.io/name label
+          - source_labels: [__meta_kubernetes_pod_label_app_kubernetes_io_name]
+            target_label: app_name
+
+          # Add app.kubernetes.io/instance label
+          - source_labels: [__meta_kubernetes_pod_label_app_kubernetes_io_instance]
+            target_label: instance
+
+          # Add job label from namespace/app
+          - source_labels: [__meta_kubernetes_namespace, __meta_kubernetes_pod_label_app]
+            separator: /
+            target_label: job
+            replacement: $1
+
+          # Set path to pod logs
+          - replacement: /var/log/pods/*$1/*.log
+            separator: /
+            source_labels:
+              - __meta_kubernetes_pod_uid
+              - __meta_kubernetes_pod_container_name
+            target_label: __path__
+
+# DaemonSet configuration (runs on every node)
+daemonset:
+  enabled: true
+
+# Resource limits
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 200m
+    memory: 128Mi
+
+# Service Monitor for Prometheus metrics
+serviceMonitor:
+  enabled: true
+  labels:
+    release: kube-prometheus-stack
+
+# Tolerations to run on all nodes
+tolerations:
+  - effect: NoSchedule
+    operator: Exists
+  - effect: NoExecute
+    operator: Exists
+
+# Priority class (optional, for better scheduling)
+priorityClassName: ""
