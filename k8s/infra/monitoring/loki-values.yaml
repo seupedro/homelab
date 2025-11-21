@@ -33,8 +33,8 @@ loki:
     retention_period: 30d
     max_query_series: 10000
     max_query_lookback: 30d
-    ingestion_rate_mb: 10
-    ingestion_burst_size_mb: 20
+    ingestion_rate_mb: 5
+    ingestion_burst_size_mb: 10
 
   # Storage retention
   storage_config:
@@ -54,11 +54,11 @@ loki:
   # Resource limits for Loki
   resources:
     requests:
-      cpu: 200m
-      memory: 256Mi
+      cpu: 100m
+      memory: 128Mi
     limits:
-      cpu: 1000m
-      memory: 1Gi
+      cpu: 500m
+      memory: 512Mi
 
 # SingleBinary mode configuration
 singleBinary:
@@ -73,7 +73,7 @@ singleBinary:
   # Extra environment variables
   extraEnv:
     - name: GOMEMLIMIT
-      value: "900MiB"
+      value: "450MiB"
 
 # Disable distributed components (not needed in SingleBinary mode)
 read:
@@ -174,11 +174,11 @@ promtail:
   # Resource limits for Promtail
   resources:
     requests:
-      cpu: 50m
-      memory: 64Mi
+      cpu: 25m
+      memory: 32Mi
     limits:
-      cpu: 200m
-      memory: 128Mi
+      cpu: 100m
+      memory: 64Mi
 
   # Service monitor for Promtail
   serviceMonitor:

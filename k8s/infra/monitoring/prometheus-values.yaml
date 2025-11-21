@@ -14,16 +14,16 @@ prometheus:
       tag: v2.55.1
 
     # Retention period for metrics
-    retention: 15d
+    retention: 7d
 
     # Resource limits
     resources:
       requests:
-        cpu: 500m
-        memory: 1Gi
+        cpu: 250m
+        memory: 512Mi
       limits:
-        cpu: 2000m
-        memory: 2Gi
+        cpu: 1000m
+        memory: 1Gi
 
     # Storage configuration
     storageSpec:
@@ -63,6 +63,10 @@ alertmanager:
 grafana:
   enabled: true
 
+  # Disable init container that fails on Talos Linux + local-path-provisioner
+  initChownData:
+    enabled: false
+
   # Admin credentials
   adminPassword: "changeme-please-update-this"
 
@@ -79,11 +83,11 @@ grafana:
   # Resource limits
   resources:
     requests:
-      cpu: 100m
-      memory: 128Mi
+      cpu: 50m
+      memory: 64Mi
     limits:
-      cpu: 500m
-      memory: 512Mi
+      cpu: 300m
+      memory: 256Mi
 
   # Datasource configuration - use chart defaults
   # Loki datasource will be added after Loki is deployed via ConfigMap
@@ -134,11 +138,11 @@ nodeExporter:
   enabled: true
   resources:
     requests:
-      cpu: 50m
-      memory: 64Mi
+      cpu: 25m
+      memory: 32Mi
     limits:
-      cpu: 200m
-      memory: 128Mi
+      cpu: 100m
+      memory: 64Mi
 
 # Kube-state-metrics configuration
 kube-state-metrics:
@@ -218,7 +222,7 @@ kubeScheduler:
 
 # Kube Proxy monitoring
 kubeProxy:
-  enabled: true
+  enabled: false
 
 # Kube Etcd monitoring (disabled for managed clusters)
 kubeEtcd:
