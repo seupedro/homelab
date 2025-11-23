@@ -1,0 +1,139 @@
+# OAuth2-Proxy Helm Chart Values for Traefik Dashboard
+# Similar to whoami setup - Reverse Proxy Mode
+
+# Configuration
+config:
+    # OIDC Provider
+    provider: "oidc"
+    oidcIssuerUrl: "https://zitadel.pane.run"
+
+    # Client credentials
+    clientID: "347744841515466952"
+    clientSecret: "not-used-with-pkce" # PKCE doesn't use client secret, but field is required
+
+    # Redirect configuration (REQUIRED)
+    # In reverse proxy mode, use the actual application domain
+    redirectUrl: "https://traefik.pane.run/oauth2/callback"
+
+    # Whitelist domains (REQUIRED - allows redirects to these domains)
+    whitelistDomains:
+        - ".pane.run"
+
+    # Cookie configuration
+    cookieName: "_oauth2-proxy-traefik"
+    cookieSecret: "r4_NLH9OvlgzemLxoJ8dGR_QndbbNwpUWR5jjJVTU14"
+    cookieSecure: true
+    cookieHttpOnly: true
+    cookieSameSite: "lax"
+    cookieExpire: "168h" # 7 days
+    cookieRefresh: "60m" # Refresh token every hour
+
+    # PKCE support
+    codeChallengMethod: "S256"
+
+    # Scopes to request
+    scope: "openid profile email"
+
+    # Email domain restrictions (allow all)
+    emailDomains:
+        - "*"
+
+    # Upstream (Reverse Proxy mode - proxy to Traefik dashboard after authentication)
+    upstreams:
+        - "http://traefik.traefik.svc.cluster.local:8080"
+
+    # Skip provider CA verification (Let's Encrypt is trusted)
+    skipProviderCAVerification: false
+
+    # Pass auth headers to upstream
+    setXAuthRequest: true
+    setAuthorizationHeader: true
+    passAccessToken: true
+    passUserHeaders: true
+
+    # Reverse proxy settings
+    reverseProxy: true
+
+    # Whitelist healthcheck paths
+    skipAuthRoutes:
+        - "GET=/ping"
+        - "GET=/ready"
+
+# Service configuration
+service:
+    type: ClusterIP
+    portNumber: 80
+    targetPort: 4180
+
+# Resource limits
+resources:
+    limits:
+        cpu: 200m
+        memory: 256Mi
+    requests:
+        cpu: 100m
+        memory: 128Mi
+
+# Replica count
+replicaCount: 1
+
+# Probes
+livenessProbe:
+    enabled: true
+    initialDelaySeconds: 10
+    timeoutSeconds: 5
+
+readinessProbe:
+    enabled: true
+    initialDelaySeconds: 10
+    timeoutSeconds: 5
+
+# Disable built-in ingress (we'll use Traefik IngressRoute)
+ingress:
+    enabled: false
+
+# Session storage (in-memory for single replica)
+sessionStorage:
+    type: cookie
+
+# Extra arguments
+extraArgs:
+    # Provider configuration
+    provider: "oidc"
+    oidc-issuer-url: "https://zitadel.pane.run"
+    redirect-url: "https://traefik.pane.run/oauth2/callback"
+
+    # OIDC claims
+    oidc-email-claim: "email"
+    oidc-groups-claim: "groups"
+
+    # Other settings
+    skip-jwt-bearer-tokens: true
+    skip-auth-strip-headers: false
+
+    # Reverse proxy settings
+    reverse-proxy: true
+    pass-access-token: true
+    pass-user-headers: true
+    set-xauthrequest: true
+    set-authorization-header: true
+
+    # Cookie settings
+    cookie-name: "_oauth2-proxy-traefik"
+    cookie-secure: true
+    cookie-httponly: true
+    cookie-samesite: "lax"
+    cookie-expire: "168h"
+    cookie-refresh: "60m"
+
+    # PKCE
+    code-challenge-method: "S256"
+
+    # Scope
+    scope: "openid profile email"
+
+    # Whitelist
+    whitelist-domain: ".pane.run"
+
+    # Upstream - proxy to Traefik dashboard service after authentication
+    upstream: "http://traefik.traefik.svc.cluster.local:8080"

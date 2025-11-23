@@ -10,7 +10,7 @@ spec:
   - match: Host(`headlamp.pane.run`)
     kind: Rule
     services:
-    - name: headlamp
+    - name: oauth2-proxy-headlamp
       port: 80
   tls:
     secretName: headlamp-tls

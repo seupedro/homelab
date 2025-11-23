@@ -1,0 +1,139 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ssh-startup
+  namespace: debian-ssh
+data:
+  startup.sh: |
+    #!/bin/bash
+    set -e
+
+    echo "Updating package lists..."
+    apt-get update -qq
+
+    echo "Installing system packages and tools..."
+    DEBIAN_FRONTEND=noninteractive apt-get install -y -qq \
+        openssh-server \
+        sudo \
+        curl \
+        wget \
+        git \
+        vim \
+        neovim \
+        tmux \
+        htop \
+        btop \
+        tree \
+        jq \
+        unzip \
+        zip \
+        tar \
+        gzip \
+        file \
+        less \
+        ca-certificates \
+        gnupg \
+        lsb-release
+
+    echo "Installing networking tools..."
+    DEBIAN_FRONTEND=noninteractive apt-get install -y -qq \
+        net-tools \
+        iputils-ping \
+        iproute2 \
+        dnsutils \
+        traceroute \
+        tcpdump \
+        netcat-openbsd \
+        nmap \
+        telnet \
+        whois \
+        iperf3 \
+        mtr-tiny \
+        socat \
+        bind9-dnsutils \
+        mosh
+
+    echo "Installing build tools..."
+    DEBIAN_FRONTEND=noninteractive apt-get install -y -qq \
+        build-essential \
+        gcc \
+        g++ \
+        make \
+        cmake \
+        autoconf \
+        automake \
+        pkg-config \
+        libtool
+
+    echo "Installing Python and related tools..."
+    DEBIAN_FRONTEND=noninteractive apt-get install -y -qq \
+        python3 \
+        python3-pip \
+        python3-venv \
+        python3-dev
+
+    echo "Installing yq (YAML processor)..."
+    YQ_VERSION="v4.44.3"
+    wget -qO /usr/local/bin/yq "https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/yq_linux_amd64"
+    chmod +x /usr/local/bin/yq
+
+    echo "Installing uv (Python package manager)..."
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+    # Make uv available system-wide
+    ln -sf /root/.local/bin/uv /usr/local/bin/uv
+
+    echo "Configuring locales..."
+    DEBIAN_FRONTEND=noninteractive apt-get install -y -qq locales
+    # Generate en_US.UTF-8 and pt_BR.UTF-8 locales
+    sed -i 's/^# *en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen
+    sed -i 's/^# *pt_BR.UTF-8 UTF-8/pt_BR.UTF-8 UTF-8/' /etc/locale.gen
+    locale-gen
+    # Set en_US.UTF-8 as default
+    update-locale LANG=en_US.UTF-8 LANGUAGE=en_US:en LC_ALL=en_US.UTF-8
+
+    echo "Setting up user seupedro..."
+    # Create user if it doesn't exist (handles persistent /home)
+    if ! id seupedro &>/dev/null; then
+        echo "Creating user seupedro..."
+        useradd -m -s /bin/bash seupedro
+    else
+        echo "User seupedro already exists (persistent home directory)"
+        # Ensure user has correct shell even if it exists
+        usermod -s /bin/bash seupedro
+    fi
+
+    # Ensure sudo group membership and permissions
+    usermod -aG sudo seupedro
+    echo "seupedro ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/seupedro
+    chmod 440 /etc/sudoers.d/seupedro
+
+    echo "Installing nvm (Node Version Manager) for user..."
+    # Install nvm for the user
+    if [ ! -d "/home/seupedro/.nvm" ]; then
+        echo "Installing nvm..."
+        su - seupedro -c 'curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash'
+        # Install latest LTS Node.js
+        su - seupedro -c 'export NVM_DIR="$HOME/.nvm" && [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" && nvm install --lts'
+    else
+        echo "nvm already installed"
+    fi
+
+    echo "Setting up SSH directory and authorized_keys..."
+    mkdir -p /home/seupedro/.ssh
+    # Always update authorized_keys from configmap (allows key rotation)
+    cp /ssh-keys/authorized_keys /home/seupedro/.ssh/authorized_keys
+    # Ensure correct ownership and permissions
+    chown -R seupedro:seupedro /home/seupedro
+    chmod 700 /home/seupedro/.ssh
+    chmod 600 /home/seupedro/.ssh/authorized_keys
+
+    echo "Configuring SSH server..."
+    mkdir -p /run/sshd
+    sed -i 's/#PermitRootLogin.*/PermitRootLogin no/' /etc/ssh/sshd_config
+    sed -i 's/#PubkeyAuthentication.*/PubkeyAuthentication yes/' /etc/ssh/sshd_config
+    sed -i 's/#PasswordAuthentication.*/PasswordAuthentication no/' /etc/ssh/sshd_config
+    echo "AllowUsers seupedro" >> /etc/ssh/sshd_config
+
+    echo "All tools installed successfully!"
+    echo "Starting SSH server..."
+    exec /usr/sbin/sshd -D -e
